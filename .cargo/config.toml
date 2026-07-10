@@ -5,3 +5,10 @@ rustflags = [
     "--remap-path-prefix=/home/dconnolly/.cargo=/cargo",
     "--remap-path-prefix=/home/dconnolly/yarn-agentic/software/gguf-recast/main=/src",
 ]
+
+# Vendored deps: hermetic --offline builds (reproducible-anchor; network-free verify-build)
+[source.crates-io]
+replace-with = "vendored-sources"
+
+[source.vendored-sources]
+directory = "vendor"
