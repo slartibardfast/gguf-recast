@@ -1,0 +1,10 @@
+name	src_type	out_type	band	absmax	n_elem	note
+blk.0.band_a.weight	BF16	F16	A	214	128	T5 hadamard d=16, post_absmax=195.688, /0.00652292
+blk.0.band_b.weight	BF16	F16	B	49920	128	T5 hadamard d=16, post_absmax=12615.8, /0.420527
+blk.0.band_c.weight	BF16	F16	C	99840	128	T5 hadamard d=16, post_absmax=25095.8, /0.836527
+blk.0.zero.weight	BF16	F16	A	0	32	zero-tensor
+blk.0.keepme.weight	BF16	BF16	-	0	64	policy-preserve
+blk.0.vec.bias	BF16	F16	A	2048	16	T5 falls-back-T2 /0.0682667
+blk.0.norm.weight	F32	F32	-	0	24	passthrough
+blk.0.half.weight	F16	F16	-	0	64	passthrough
+blk.0.q8.weight	Q8_0	Q8_0	-	0	256	passthrough

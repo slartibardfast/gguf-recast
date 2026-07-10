@@ -7,13 +7,7 @@
 //! - `recast-bf16-fp16`: per-tensor absmax-aware BF16 -> FP16 selective
 //!   recast, byte-identical to `recast_bf16_to_fp16.py`.
 
-mod fp;
-mod gguf;
-mod quant;
-mod recast;
-mod remix;
-mod safetensors;
-
+use gguf_recast::{recast, remix};
 use std::path::PathBuf;
 use std::process::ExitCode;
 
