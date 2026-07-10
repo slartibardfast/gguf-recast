@@ -1,0 +1,7 @@
+# Reproducible builds: strip absolute host paths (registry sources, crate root)
+# out of panic-location strings and debug info embedded in the artifact.
+[build]
+rustflags = [
+    "--remap-path-prefix=/home/dconnolly/.cargo=/cargo",
+    "--remap-path-prefix=/home/dconnolly/yarn-agentic/software/gguf-recast/main=/src",
+]
