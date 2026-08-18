@@ -37,6 +37,9 @@ pub const TYPE_CODE_MIGRATIONS: &[(u32, u32)] = &[
     // fork-local Q4_0_AR16 re-anchored to the tail, 42 -> 43 (count 43 -> 44).
     // Files written before this date carry Q4_0_AR16 as 42.
     (42, 43),
+    // The ik_llama.cpp line numbers Q4_0_AR16 as 159 (its own enum); the
+    // block format is the same, so those files migrate to the mainline id.
+    (159, 43),
 ];
 
 /// Same for GGML_FTYPE metadata values (moved with their type code).
