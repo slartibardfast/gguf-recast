@@ -2,6 +2,7 @@
 
 pub mod fp;
 pub mod gguf;
+pub mod migrate;
 pub mod quant;
 pub mod recast;
 pub mod remix;

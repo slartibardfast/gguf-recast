@@ -8,12 +8,12 @@ pub const GGUF_MAGIC: u32 = 0x4655_4747; // "GGUF"
 pub const GGUF_VERSION: u32 = 3;
 pub const ALIGNMENT: u64 = 32;
 
-// ggml type ids used by this tool (llama.cpp b9222 fork numbering).
+// ggml type ids used by this tool (current fork numbering).
 pub const T_F32: u32 = 0;
 pub const T_F16: u32 = 1;
 pub const T_Q4_0: u32 = 2;
 pub const T_BF16: u32 = 30;
-pub const T_Q4_0_AR16: u32 = 42;
+pub const T_Q4_0_AR16: u32 = 43;
 
 /// (block_size, type_size) for the types this tool reads or writes.
 pub fn type_sizes(t: u32) -> Option<(u64, u64)> {
@@ -26,6 +26,33 @@ pub fn type_sizes(t: u32) -> Option<(u64, u64)> {
         8 => Some((32, 34)), // Q8_0
         _ => None,
     }
+}
+
+/// Type-code migrations for files written by earlier fork enums. The GGUF
+/// format carries no enum version, so when a type's numeric id moves between
+/// enums the recast tool must rewrite old files. Entry: (legacy, current).
+/// The data layout is unchanged (same quantization), only the id moved.
+pub const TYPE_CODE_MIGRATIONS: &[(u32, u32)] = &[
+    // 2026-08-17 (fork 5990f5946): upstream ggml took GGML_TYPE_Q2_0 = 42; the
+    // fork-local Q4_0_AR16 re-anchored to the tail, 42 -> 43 (count 43 -> 44).
+    // Files written before this date carry Q4_0_AR16 as 42.
+    (42, 43),
+];
+
+/// Same for GGML_FTYPE metadata values (moved with their type code).
+pub const FTYPE_MIGRATIONS: &[(u32, u32)] = &[
+    (28, 29), // MOSTLY_Q4_0_AR16 28 -> 29
+];
+
+/// Resolve a type code read from a (possibly legacy) GGUF to the current enum.
+/// Codes already current are returned unchanged.
+pub fn resolve_type_code(code: u32) -> u32 {
+    for (legacy, current) in TYPE_CODE_MIGRATIONS {
+        if *legacy == code {
+            return *current;
+        }
+    }
+    code
 }
 
 pub fn ggml_pad(x: u64, align: u64) -> u64 {
@@ -300,6 +327,9 @@ pub struct ReaderTensor {
     pub name: String,
     /// Shape exactly as stored on disk (GGUF/ggml order, i.e. reversed numpy).
     pub dims: Vec<u64>,
+    /// Type code as stored in the file (may be a legacy enum id).
+    pub dtype_orig: u32,
+    /// Type code resolved to the current enum (see TYPE_CODE_MIGRATIONS).
     pub dtype: u32,
     pub offset: u64,
     pub nbytes: u64,
@@ -466,10 +496,11 @@ impl Reader {
             }
             let dtype = rd_u32(&mut f)?;
             let offset = rd_u64(&mut f)?;
-            let (bs, ts) = type_sizes(dtype).ok_or_else(|| {
+            let resolved = resolve_type_code(dtype);
+            let (bs, ts) = type_sizes(resolved).ok_or_else(|| {
                 io::Error::new(
                     io::ErrorKind::InvalidData,
-                    format!("unsupported tensor type {dtype} for {name}"),
+                    format!("unsupported tensor type {resolved} (stored {dtype}) for {name}"),
                 )
             })?;
             let n_elems: u64 = dims.iter().product();
@@ -477,7 +508,8 @@ impl Reader {
             tensors.push(ReaderTensor {
                 name,
                 dims,
-                dtype,
+                dtype_orig: dtype,
+                dtype: resolved,
                 offset,
                 nbytes,
             });

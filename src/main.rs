@@ -2,12 +2,14 @@
 //!
 //! Subcommands:
 //! - `remix`: AutoRound INT4 HF checkpoint -> GGUF (Q4_0 trunk, V-row-perm
-//!   Q4_0, V-col-perm Q4_0_AR16 at id 42), byte-identical to the Python
+//!   Q4_0, V-col-perm Q4_0_AR16 at id 43), byte-identical to the Python
 //!   recipe `autoround_to_q4_0_gguf.py` on the same sources.
 //! - `recast-bf16-fp16`: per-tensor absmax-aware BF16 -> FP16 selective
 //!   recast, byte-identical to `recast_bf16_to_fp16.py`.
+//! - `migrate`: remap legacy type-code ids to the current fork enum
+//!   (e.g. Q4_0_AR16 42 -> 43) when rewriting old GGUFs.
 
-use gguf_recast::{recast, remix};
+use gguf_recast::{migrate, recast, remix};
 use std::path::PathBuf;
 use std::process::ExitCode;
 
@@ -16,7 +18,8 @@ fn usage() -> ExitCode {
         "usage:\n  gguf-recast remix --model-dir <hf-snapshot> --outfile <out.gguf>\n  \
          gguf-recast recast-bf16-fp16 --input <src.gguf> --policy <policy.yaml|json> \
          --tier <dry-run|T1|T2|T3|T4|T5> [--output <dst.gguf>] [--absmax-tsv <out.tsv>] \
-         [--force-rescale]"
+         [--force-rescale]\n  \
+         gguf-recast migrate --input <old.gguf> --output <new.gguf>"
     );
     ExitCode::from(2)
 }
@@ -72,6 +75,18 @@ fn main() -> ExitCode {
                 Ok(()) => ExitCode::SUCCESS,
                 Err(e) => {
                     eprintln!("recast failed: {e}");
+                    ExitCode::FAILURE
+                }
+            }
+        }
+        "migrate" => {
+            let (Some(input), Some(output)) = (get_opt("--input"), get_opt("--output")) else {
+                return usage();
+            };
+            match migrate::run(&PathBuf::from(input), &PathBuf::from(output)) {
+                Ok(()) => ExitCode::SUCCESS,
+                Err(e) => {
+                    eprintln!("migrate failed: {e}");
                     ExitCode::FAILURE
                 }
             }
